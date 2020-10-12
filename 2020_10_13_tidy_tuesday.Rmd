@@ -1,0 +1,34 @@
+---
+title: "TidyTemplate"
+date: 2020-10-12
+output: html_output
+editor_options: 
+  chunk_output_type: console
+---
+
+# TidyTuesday
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytuesdayR)
+
+```
+
+# Load the weekly Data
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+
+tt <- tt_load("2020-10-06")
+tournamnet <- tt$tournament
+```
+
+```{r}
+
+```
+
