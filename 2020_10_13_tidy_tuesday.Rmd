@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(tidytuesdayR)
-
+theme_set(theme_light())
 ```
 
 # Load the weekly Data
@@ -25,10 +25,112 @@ Dowload the weekly data and make available in the `tt` object.
 ```{r Load}
 
 tt <- tt_load("2020-10-06")
-tournamnet <- tt$tournament
+tournament <- tt$tournament
 ```
 
 ```{r}
+tournament %>% 
+    filter(!is.na(seed)) %>% 
+    group_by(seed) %>% 
+    summarise(exp_wins = mean(tourney_w, na.rm = T)) %>% 
+    ggplot(aes(seed, exp_wins)) +
+    geom_col()
+```
+
+```{r}
+tournament %>% 
+    ggplot(aes(seed, tourney_w)) +
+    geom_bin2d(binwidth = c(1,1)) +
+    scale_fill_gradient(low = "skyblue", high = "pink")
+```
+
+Modelling
+```{r}
+library(tidymodels)
+```
+
+split
+```{r}
+tournament_split <- tournament %>% 
+    filter(!is.na(seed)) %>% 
+    initial_split(strata = seed)
+
+tournament_train <- training(tournament_split)
+tournament_test <- testing(tournament_split)
+```
+
+resamples
+```{r}
+tournament_bootstraps <- tournament_train %>% 
+    bootstraps()
+```
+
+recipe
+```{r}
+
+tournament_recipe <- tournament_train %>% 
+    recipe(tourney_w ~ seed) %>% 
+    step_ns(seed, deg_free = tune("seed_splines"))
+```
+
+model spec
+```{r}
+tournament_spec <- linear_reg() %>% 
+    set_engine("lm") %>% 
+    set_mode("regression")
+```
+
+workflow
+```{r}
+tournamnet_wf <- workflow() %>% 
+    add_model(spec = tournament_spec) %>% 
+    add_recipe(tournament_recipe)
+```
+
+tuning
+```{r}
+
+spline_grid <- tibble(seed_splines = c(1:3, 5, 7, 10, 15))
+```
+
+fit
+```{r}
+doParallel::registerDoParallel()
+
+tournament_res <- tune_grid(tournamnet_wf,
+          resamples = tournament_bootstraps,
+          grid = spline_grid,
+          control = control_grid(save_pred = T)
+          )
+
+tournament_res
+```
+results
+```{r}
+tournament_res %>% 
+    autoplot()
+
+tournament_res %>% 
+    select_by_pct_loss(metric = "rmse", limit = 1, seed_splines)
+```
+
+```{r}
+best_para <- tournament_res %>% 
+    show_best(metric = "rmse",n = 1)
+
+final_wf <- tournamnet_wf %>% 
+    finalize_workflow(parameters = best_para)
+```
+
+final_fit
+```{r}
+tourney_fit <- fit(final_wf, tournament_train)
+
+tournament_test %>% 
+    select(tourney_w) %>% cbind(floor(predict(tourney_fit, new_data = tournament_test))) %>% 
+    head()
 
 ```
+
+End of script
 
