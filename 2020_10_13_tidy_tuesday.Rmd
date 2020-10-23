@@ -1,5 +1,5 @@
 ---
-title: "TidyTemplate"
+title: "TidyTemplate with Julia Silge"
 date: 2020-10-12
 output: html_output
 editor_options: 

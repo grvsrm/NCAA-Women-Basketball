@@ -1,0 +1,77 @@
+---
+title: "TidyTemplate with Dave Robinson"
+date: 2020-10-23
+output: html_output
+editor_options: 
+  chunk_output_type: console
+---
+
+# TidyTuesday
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(scales)
+#library(tidytuesdayR)
+theme_set(theme_light())
+```
+
+
+Dowload the weekly data and make available in the `tt` object.
+
+```{r Load}
+
+tt <- tt_load("2020-10-06")
+tournament_raw <- tt$tournament
+
+# save the data in a RDS object so that we don't ahve to download it again next time
+
+tournament_raw %>% 
+    saveRDS("tournament_raw.rds")
+
+```
+
+Load the weekly Data from the saved object
+
+```{r}
+tournament_raw <- readRDS("tournament_raw.rds")
+
+# Cleaned data
+
+finish_levels <- c("1st", "2nd", "RSF", "RF", "NSF", "N2nd", "Champ")    
+
+tournament <- tournament_raw %>% 
+    filter(year >= 1994) %>% 
+    mutate(tourney_finish = fct_relevel(tourney_finish, finish_levels))
+
+```
+
+Data Exploration
+```{r}
+tournament %>% 
+    count(year)
+```
+
+```{r}
+tournament %>% 
+    group_by(seed) %>% 
+    summarise(n = n(),
+              pct_win = mean(tourney_finish %in% c("Champ","N2nd"), na.rm = T))
+```
+
+```{r}
+tournament %>% 
+    count(seed, tourney_finish) %>% 
+    group_by(seed) %>% 
+    mutate(pct = n/sum(n)) %>% 
+    ggplot(aes(tourney_finish, seed, fill = pct)) +
+    geom_tile() +
+    scale_fill_gradient2(low = "blue", high = "red")
+```
+
+```{r}
+
+```
+
